@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Review;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class ReviewApiTest extends TestCase
@@ -60,19 +61,41 @@ class ReviewApiTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $response = $this
-            ->actingAs($user)
-            ->postJson('/api/reviews', [
-                'title' => 'Test Review',
-                'description' => 'Test Description',
-                'rating' => 5,
-            ]);
+        Sanctum::actingAs($user, ['*']);
+
+        $response = $this->postJson('/api/reviews', [
+            'title' => 'Test Review',
+            'description' => 'Test Description',
+            'rating' => 5,
+        ]);
 
         $response->assertCreated();
 
         $this->assertDatabaseHas(Review::class, [
             'author_id' => $user->id,
         ]);
+    }
+
+    public function test_create_review_with_forbidden_words(): void
+    {
+        /** @var string[] $forbiddenWords */
+        $forbiddenWords = config('reviews.forbidden_words');
+
+        if (empty($forbiddenWords)) {
+            $this->markTestSkipped('No forbidden words in config/reviews.php');
+        }
+
+        $user = User::factory()->create();
+
+        Sanctum::actingAs($user, ['*']);
+
+        $response = $this->postJson('/api/reviews', [
+            'title' => 'title with forbidden word: ' . $forbiddenWords[0],
+            'description' => 'Test Description',
+            'rating' => 5,
+        ]);
+
+        $response->assertBadRequest();
     }
 
     public function test_get_specific_review(): void
@@ -103,17 +126,17 @@ class ReviewApiTest extends TestCase
     {
         $user = User::factory()->create();
 
+        Sanctum::actingAs($user, ['*']);
+
         $review = Review::factory()
             ->for($user, relationship: 'author')
             ->create();
 
-        $response = $this
-            ->actingAs($user)
-            ->putJson("/api/reviews/$review->id", [
-                'title' => 'Test Review (edited)',
-                'description' => 'Test Description (edited)',
-                'rating' => 4,
-            ]);
+        $response = $this->putJson("/api/reviews/$review->id", [
+            'title' => 'Test Review (edited)',
+            'description' => 'Test Description (edited)',
+            'rating' => 4,
+        ]);
 
         $response->assertOk();
 
@@ -124,21 +147,47 @@ class ReviewApiTest extends TestCase
         $this->assertEquals(4, $review->rating);
     }
 
+    public function test_update_review_with_forbidden_words(): void
+    {
+        /** @var string[] $forbiddenWords */
+        $forbiddenWords = config('reviews.forbidden_words');
+
+        if (empty($forbiddenWords)) {
+            $this->markTestSkipped('No forbidden words in config/reviews.php');
+        }
+
+        $user = User::factory()->create();
+
+        Sanctum::actingAs($user, ['*']);
+
+        $review = Review::factory()
+            ->for($user, relationship: 'author')
+            ->create();
+
+        $response = $this->putJson("/api/reviews/$review->id", [
+            'title' => 'title with forbidden word: ' . $forbiddenWords[0],
+            'description' => 'Test Description (edited)',
+            'rating' => 4,
+        ]);
+
+        $response->assertBadRequest();
+    }
+
     public function test_update_review_with_different_user(): void
     {
         $user = User::factory()->create();
+
+        Sanctum::actingAs($user, ['*']);
 
         $review = Review::factory()
             ->for(User::factory(), relationship: 'author')
             ->create();
 
-        $response = $this
-            ->actingAs($user)
-            ->putJson("/api/reviews/$review->id", [
-                'title' => 'Test Review (edited)',
-                'description' => 'Test Description (edited)',
-                'rating' => 4,
-            ]);
+        $response = $this->putJson("/api/reviews/$review->id", [
+            'title' => 'Test Review (edited)',
+            'description' => 'Test Description (edited)',
+            'rating' => 4,
+        ]);
 
         $response->assertForbidden();
     }
@@ -147,13 +196,13 @@ class ReviewApiTest extends TestCase
     {
         $user = User::factory()->create();
 
+        Sanctum::actingAs($user, ['*']);
+
         $review = Review::factory()
             ->for($user, relationship: 'author')
             ->create();
 
-        $response = $this
-            ->actingAs($user)
-            ->delete("/api/reviews/$review->id");
+        $response = $this->delete("/api/reviews/$review->id");
 
         $response->assertNoContent();
 
@@ -164,13 +213,13 @@ class ReviewApiTest extends TestCase
     {
         $user = User::factory()->create();
 
+        Sanctum::actingAs($user, ['*']);
+
         $review = Review::factory()
             ->for(User::factory(), relationship: 'author')
             ->create();
 
-        $response = $this
-            ->actingAs($user)
-            ->delete("/api/reviews/$review->id");
+        $response = $this->delete("/api/reviews/$review->id");
 
         $response->assertForbidden();
     }
