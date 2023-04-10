@@ -24,7 +24,7 @@ class ReviewController extends Controller
     /**
      * Display a last created resource.
      */
-    public function last()
+    public function latest()
     {
         //
     }

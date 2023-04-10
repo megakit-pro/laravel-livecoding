@@ -24,34 +24,36 @@ class ReviewApiTest extends TestCase
             ->assertJsonStructure([
                 'data' => [
                     '*' => [
+                        'id',
                         'author_name',
                         'title',
-                        'description',
+                        'body',
                         'rating',
                     ],
                 ],
             ]);
     }
 
-    public function test_get_last_review(): void
+    public function test_get_latest_review(): void
     {
-        Review::factory(3)
+        $reviews = Review::factory(3)
             ->for(User::factory()->set('name', 'Test Author'), relationship: 'author')
             ->create([
                 'title' => 'Test Review',
-                'description' => 'Test Description',
+                'body' => 'Test Body',
                 'rating' => 5,
             ]);
 
-        $response = $this->getJson('/api/reviews/last');
+        $response = $this->getJson('/api/reviews/latest');
 
         $response
             ->assertOk()
             ->assertExactJson([
                 'data' => [
+                    'id' => $reviews->last()->id,
                     'author_name' => 'Test Author',
                     'title' => 'Test Review',
-                    'description' => 'Test Description',
+                    'body' => 'Test Body',
                     'rating' => 5,
                 ],
             ]);
@@ -65,7 +67,7 @@ class ReviewApiTest extends TestCase
 
         $response = $this->postJson('/api/reviews', [
             'title' => 'Test Review',
-            'description' => 'Test Description',
+            'body' => 'Test Body',
             'rating' => 5,
         ]);
 
@@ -91,7 +93,7 @@ class ReviewApiTest extends TestCase
 
         $response = $this->postJson('/api/reviews', [
             'title' => 'title with forbidden word: ' . $forbiddenWords[0],
-            'description' => 'Test Description',
+            'body' => 'Test Body',
             'rating' => 5,
         ]);
 
@@ -104,7 +106,7 @@ class ReviewApiTest extends TestCase
             ->for(User::factory()->set('name', 'Test Author'), relationship: 'author')
             ->create([
                 'title' => 'Test Review',
-                'description' => 'Test Description',
+                'body' => 'Test Body',
                 'rating' => 5,
             ]);
 
@@ -114,9 +116,10 @@ class ReviewApiTest extends TestCase
             ->assertOk()
             ->assertExactJson([
                 'data' => [
+                    'id' => $review->id,
                     'author_name' => 'Test Author',
                     'title' => 'Test Review',
-                    'description' => 'Test Description',
+                    'body' => 'Test Body',
                     'rating' => 5,
                 ],
             ]);
@@ -134,7 +137,7 @@ class ReviewApiTest extends TestCase
 
         $response = $this->putJson("/api/reviews/$review->id", [
             'title' => 'Test Review (edited)',
-            'description' => 'Test Description (edited)',
+            'body' => 'Test Body (edited)',
             'rating' => 4,
         ]);
 
@@ -143,7 +146,7 @@ class ReviewApiTest extends TestCase
         $review->refresh();
 
         $this->assertEquals('Test Review (edited)', $review->title);
-        $this->assertEquals('Test Description (edited)', $review->description);
+        $this->assertEquals('Test Body (edited)', $review->body);
         $this->assertEquals(4, $review->rating);
     }
 
@@ -166,7 +169,7 @@ class ReviewApiTest extends TestCase
 
         $response = $this->putJson("/api/reviews/$review->id", [
             'title' => 'title with forbidden word: ' . $forbiddenWords[0],
-            'description' => 'Test Description (edited)',
+            'body' => 'Test Body (edited)',
             'rating' => 4,
         ]);
 
@@ -185,7 +188,7 @@ class ReviewApiTest extends TestCase
 
         $response = $this->putJson("/api/reviews/$review->id", [
             'title' => 'Test Review (edited)',
-            'description' => 'Test Description (edited)',
+            'body' => 'Test Body (edited)',
             'rating' => 4,
         ]);
 

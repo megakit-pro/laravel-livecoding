@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('author_id')->constrained('users');
             $table->string('title');
-            $table->text('description');
+            $table->text('body');
             $table->tinyInteger('rating')->unsigned();
             $table->timestamps();
             $table->softDeletes();
